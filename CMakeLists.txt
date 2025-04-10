@@ -55,7 +55,7 @@ target_link_libraries(mm_logger INTERFACE spdlog::spdlog)
 install(DIRECTORY include/ DESTINATION include)
 
 # 测试配置
-option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
