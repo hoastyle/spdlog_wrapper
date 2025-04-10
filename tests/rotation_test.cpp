@@ -24,11 +24,11 @@ std::string generate_random_string(size_t length) {
 
 int main(int argc, char *argv[]) {
   // 解析命令行参数
-  size_t num_logs = 10000;  // 默认日志条数
-  size_t log_size = 100;    // 默认每条日志大小（字符数）
-  size_t max_file_size = 1; // 默认轮转文件大小（MB）
-  size_t max_files = 5;     // 默认最大文件数
-  int log_interval_ms = 0;  // 默认无延迟
+  size_t num_logs = 10000;   // 默认日志条数
+  size_t log_size = 100;     // 默认每条日志大小（字符数）
+  size_t max_file_size = 1;  // 默认单文件大小（MB）
+  size_t max_total_size = 5; // 默认总大小限制（MB）
+  int log_interval_ms = 0;   // 默认无延迟
 
   // 检查命令行参数
   if (argc > 1)
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   if (argc > 3)
     max_file_size = std::stoul(argv[3]);
   if (argc > 4)
-    max_files = std::stoul(argv[4]);
+    max_total_size = std::stoul(argv[4]);
   if (argc > 5)
     log_interval_ms = std::stoi(argv[5]);
 
@@ -54,13 +54,13 @@ int main(int argc, char *argv[]) {
 #endif
 
   // 初始化日志系统
-  if (!mm_log::Logger::Instance().Initialize(log_prefix, // 日志文件前缀
-                                             max_file_size * 1024 *
-                                                 1024, // 最大文件大小（字节）
-                                             max_files, // 最大文件数
-                                             true,      // 启用DEBUG
-                                             true,      // 启用控制台
-                                             true)) {   // 启用文件
+  if (!mm_log::Logger::Instance().Initialize(
+          log_prefix,                   // 日志文件前缀
+          max_file_size * 1024 * 1024,  // 单文件大小（字节）
+          max_total_size * 1024 * 1024, // 总大小限制（字节）
+          true,                         // 启用DEBUG
+          true,                         // 启用控制台
+          true)) {                      // 启用文件
     std::cerr << "日志系统初始化失败！" << std::endl;
     return 1;
   }
@@ -68,8 +68,8 @@ int main(int argc, char *argv[]) {
   std::cout << "开始轮转测试..." << std::endl;
   std::cout << "总日志条数: " << num_logs << std::endl;
   std::cout << "每条日志大小: ~" << log_size << " 字符" << std::endl;
-  std::cout << "轮转文件大小: " << max_file_size << " MB" << std::endl;
-  std::cout << "最大文件数: " << max_files << std::endl;
+  std::cout << "单文件大小限制: " << max_file_size << " MB" << std::endl;
+  std::cout << "总文件大小限制: " << max_total_size << " MB" << std::endl;
   std::cout << "日志间隔: " << log_interval_ms << " ms" << std::endl;
   std::cout << "日志文件: " << log_prefix << ".{INFO|WARN|ERROR}" << std::endl;
   std::cout << "按Ctrl+C终止测试..." << std::endl;
