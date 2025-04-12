@@ -1,15 +1,17 @@
-#include "mm_logger.hpp"
+#include "mm_logger/mm_logger.hpp"
 #include <chrono>
 #include <iostream>
 #include <random>
 #include <string>
 #include <thread>
+#include <filesystem>
 
-// 生成随机字符串函数
+// Function to generate random string
 std::string generate_random_string(size_t length) {
-  static const char alphanum[] = "0123456789"
-                                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                 "abcdefghijklmnopqrstuvwxyz";
+  static const char alphanum[] =
+      "0123456789"
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijklmnopqrstuvwxyz";
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<> dis(0, sizeof(alphanum) - 2);
@@ -22,83 +24,84 @@ std::string generate_random_string(size_t length) {
   return result;
 }
 
-int main(int argc, char *argv[]) {
-  // 解析命令行参数
-  size_t num_logs = 10000;   // 默认日志条数
-  size_t log_size = 100;     // 默认每条日志大小（字符数）
-  size_t max_file_size = 1;  // 默认单文件大小（MB）
-  size_t max_total_size = 5; // 默认总大小限制（MB）
-  int log_interval_ms = 0;   // 默认无延迟
+int main(int argc, char* argv[]) {
+  // Parse command line arguments
+  size_t num_logs       = 10000;  // Default number of logs
+  size_t log_size       = 40;     // Default log size (characters)
+  size_t max_file_size  = 1;      // Default single file size (MB)
+  size_t max_total_size = 5;      // Default total size limit (MB)
+  int log_interval_ms   = 0;      // Default no delay
 
-  // 检查命令行参数
-  if (argc > 1)
-    num_logs = std::stoul(argv[1]);
-  if (argc > 2)
-    log_size = std::stoul(argv[2]);
-  if (argc > 3)
-    max_file_size = std::stoul(argv[3]);
-  if (argc > 4)
-    max_total_size = std::stoul(argv[4]);
-  if (argc > 5)
-    log_interval_ms = std::stoi(argv[5]);
+  // Check command line arguments
+  if (argc > 1) num_logs = std::stoul(argv[1]);
+  if (argc > 2) log_size = std::stoul(argv[2]);
+  if (argc > 3) max_file_size = std::stoul(argv[3]);
+  if (argc > 4) max_total_size = std::stoul(argv[4]);
+  if (argc > 5) log_interval_ms = std::stoi(argv[5]);
 
-  // 初始化日志系统
-  std::string log_dir = "./logs";
+  // Initialize log system
+  std::string log_dir    = "./logs";
   std::string log_prefix = log_dir + "/rotation_test";
 
-// 确保日志目录存在
-#ifdef _WIN32
-  system(("mkdir " + log_dir + " 2>nul").c_str());
-#else
-  system(("mkdir -p " + log_dir).c_str());
-#endif
-
-  // 初始化日志系统
-  if (!mm_log::Logger::Instance().Initialize(
-          log_prefix,                   // 日志文件前缀
-          max_file_size * 1024 * 1024,  // 单文件大小（字节）
-          max_total_size * 1024 * 1024, // 总大小限制（字节）
-          true,                         // 启用DEBUG
-          true,                         // 启用控制台
-          true)) {                      // 启用文件
-    std::cerr << "日志系统初始化失败！" << std::endl;
+  // Ensure log directory exists - FIXED to use C++17 filesystem
+  try {
+    std::filesystem::create_directories(log_dir);
+  } catch (const std::exception& e) {
+    std::cerr << "Failed to create log directory: " << e.what() << std::endl;
     return 1;
   }
 
-  std::cout << "开始轮转测试..." << std::endl;
-  std::cout << "总日志条数: " << num_logs << std::endl;
-  std::cout << "每条日志大小: ~" << log_size << " 字符" << std::endl;
-  std::cout << "单文件大小限制: " << max_file_size << " MB" << std::endl;
-  std::cout << "总文件大小限制: " << max_total_size << " MB" << std::endl;
-  std::cout << "日志间隔: " << log_interval_ms << " ms" << std::endl;
-  std::cout << "日志文件: " << log_prefix << ".{INFO|WARN|ERROR}" << std::endl;
-  std::cout << "按Ctrl+C终止测试..." << std::endl;
+  // Initialize log system
+  if (!mm_log::Logger::Instance().Initialize(log_prefix,  // Log file prefix
+          max_file_size * 1024 * 1024,                    // File size (bytes)
+          max_total_size * 1024 * 1024,  // Total size limit (bytes)
+          true,                          // Enable DEBUG
+          true,                          // Enable console
+          true)) {                       // Enable file
+    std::cerr << "Failed to initialize log system!" << std::endl;
+    return 1;
+  }
 
-  // 打印进度条的间隔数量
+  std::cout << "Starting rotation test..." << std::endl;
+  std::cout << "Total logs: " << num_logs << std::endl;
+  std::cout << "Log size: ~" << log_size << " characters" << std::endl;
+  std::cout << "Single file size limit: " << max_file_size << " MB"
+            << std::endl;
+  std::cout << "Total file size limit: " << max_total_size << " MB"
+            << std::endl;
+  std::cout << "Log interval: " << log_interval_ms << " ms" << std::endl;
+  std::cout << "Log file: " << log_prefix << ".{INFO|WARN|ERROR}" << std::endl;
+  std::cout << "Press Ctrl+C to terminate test..." << std::endl;
+
+  // Progress bar intervals
   const size_t progress_interval = num_logs / 50 > 0 ? num_logs / 50 : 1;
 
-  // 开始记录日志
+  // Start logging
   for (size_t i = 0; i < num_logs; ++i) {
-    // 生成随机大小的日志消息
+    // Generate random sized log message
     std::string random_data = generate_random_string(log_size);
 
-    // 随机选择日志级别
-    int level = i % 10; // 0-9
+    // Randomly select log level
+    int level = i % 10;  // 0-9
 
-    if (level < 6) { // 60% DEBUG
-      MM_DEBUG("测试日志 #%zu [轮转测试] 随机数据: %s", i, random_data.c_str());
-    } else if (level < 8) { // 20% INFO
-      MM_INFO("测试日志 #%zu [轮转测试] 随机数据: %s", i, random_data.c_str());
-    } else if (level < 9) { // 10% WARN
-      MM_WARN("测试日志 #%zu [轮转测试] 随机数据: %s", i, random_data.c_str());
-    } else { // 10% ERROR
-      MM_ERROR("测试日志 #%zu [轮转测试] 随机数据: %s", i, random_data.c_str());
+    if (level < 6) {  // 60% DEBUG
+      MM_DEBUG("Test log #%zu [Rotation Test] Random data: %s", i,
+          random_data.c_str());
+    } else if (level < 8) {  // 20% INFO
+      MM_INFO("Test log #%zu [Rotation Test] Random data: %s", i,
+          random_data.c_str());
+    } else if (level < 9) {  // 10% WARN
+      MM_WARN("Test log #%zu [Rotation Test] Random data: %s", i,
+          random_data.c_str());
+    } else {  // 10% ERROR
+      MM_ERROR("Test log #%zu [Rotation Test] Random data: %s", i,
+          random_data.c_str());
     }
 
-    // 打印进度
+    // Print progress
     if (i % progress_interval == 0) {
       float progress = static_cast<float>(i) / num_logs * 100.0f;
-      std::cout << "\r进度: " << static_cast<int>(progress) << "% [";
+      std::cout << "\rProgress: " << static_cast<int>(progress) << "% [";
       int pos = 50 * progress / 100;
       for (int j = 0; j < 50; ++j) {
         if (j < pos)
@@ -111,16 +114,19 @@ int main(int argc, char *argv[]) {
       std::cout << "] " << i << "/" << num_logs << std::flush;
     }
 
-    // 如果指定了日志间隔，则等待
+    // If log interval specified, wait
     if (log_interval_ms > 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(log_interval_ms));
     }
   }
 
-  std::cout
-      << "\r进度: 100% [==================================================] "
-      << num_logs << "/" << num_logs << std::endl;
-  std::cout << "轮转测试完成!" << std::endl;
+  std::cout << "\rProgress: 100% "
+               "[==================================================] "
+            << num_logs << "/" << num_logs << std::endl;
+  std::cout << "Rotation test complete!" << std::endl;
+
+  // Explicitly shutdown the logger to ensure all logs are flushed
+  mm_log::Logger::Instance().Shutdown();
 
   return 0;
 }
