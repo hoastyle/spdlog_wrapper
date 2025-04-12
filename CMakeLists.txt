@@ -117,6 +117,7 @@ install(FILES
 # 选项
 option(MM_LOGGER_BUILD_TESTS "Build mm_logger tests" OFF)
 option(MM_LOGGER_BUILD_EXAMPLES "Build mm_logger examples" OFF)
+option(MM_LOGGER_BUILD_PERF_TESTS "Build mm_logger performance tests" OFF)
 
 # 测试配置
 if(MM_LOGGER_BUILD_TESTS)
@@ -127,6 +128,10 @@ endif()
 # 示例配置
 if(MM_LOGGER_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if(MM_LOGGER_BUILD_PERF_TESTS)
+    add_subdirectory(perf_test)
 endif()
 
 # 打印配置信息
