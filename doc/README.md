@@ -63,11 +63,11 @@ int main() {
     // Initialize the logging system
     mm_log::Logger::Instance().Initialize(
         "./logs/my_app",      // Log file prefix
-        5 * 1024 * 1024,      // 5MB single file size
-        20 * 1024 * 1024,     // 20MB total size limit
-        true,                 // Enable DEBUG logs
-        true,                 // Enable console output
-        true                  // Enable file output
+        5,      // 5MB single file size
+        20,     // 20MB total size limit
+        true,   // Enable DEBUG logs
+        true,   // Enable console output
+        true    // Enable file output
     );
     
     // Use logging macros
@@ -90,8 +90,8 @@ For high-performance environments with many concurrent threads:
 // Use async logging with queue size and worker threads configuration
 mm_log::Logger::Instance().Initialize(
     "./logs/my_app",
-    5 * 1024 * 1024,
-    20 * 1024 * 1024,
+    5,
+    20,
     true,
     true,
     true,
@@ -105,8 +105,8 @@ mm_log::Logger::Instance().Initialize(
 ```cpp
 mm_log::Logger::Instance().Initialize(
     "./logs/my_app",
-    5 * 1024 * 1024,
-    20 * 1024 * 1024,
+    5,
+    20,
     true,
     false,  // Disable console output
     true

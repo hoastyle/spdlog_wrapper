@@ -21,13 +21,13 @@ public:
     // Initialize the logging system
     bool Initialize(
         const std::string& log_file_prefix,  // Log file prefix
-        size_t max_file_size = 10 * 1024 * 1024,  // 10MB default file size
-        size_t max_total_size = 50 * 1024 * 1024,  // 50MB default total size
-        bool enable_debug = true,  // Enable DEBUG level logs
+        size_t max_file_size = 10,   // 10MB default file size
+        size_t max_total_size = 50,  // 50MB default total size
+        bool enable_debug = true,    // Enable DEBUG level logs
         bool enable_console = true,  // Enable console output
-        bool enable_file = true,  // Enable file output
-        size_t queue_size = 8192,  // Async queue size
-        size_t thread_count = 1  // Async worker threads
+        bool enable_file = true,     // Enable file output
+        size_t queue_size = 8192,    // Async queue size
+        size_t thread_count = 1      // Async worker threads
     );
 
     // Log a message with the specified level
@@ -78,8 +78,8 @@ When initializing the logger, you can configure various parameters:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `log_file_prefix` | Path and prefix for log files | *Required* |
-| `max_file_size` | Maximum size in bytes for a single log file | 10MB |
-| `max_total_size` | Maximum total size in bytes for all log files | 50MB | 
+| `max_file_size` | Maximum size in MB for a single log file | 10MB |
+| `max_total_size` | Maximum total size in MB for all log files | 50MB | 
 | `enable_debug` | Whether to output DEBUG level logs | true |
 | `enable_console` | Whether to output logs to console | true |
 | `enable_file` | Whether to output logs to files | true |
@@ -110,11 +110,11 @@ Example:
 // Initialize at program start
 bool init_success = mm_log::Logger::Instance().Initialize(
     "./logs/my_app",      // Log files will be in ./logs/ directory
-    5 * 1024 * 1024,      // 5MB per file
-    20 * 1024 * 1024,     // 20MB total
-    true,                 // Enable DEBUG logs
-    true,                 // Enable console output
-    true                  // Enable file output
+    5,      // 5MB per file
+    20,     // 20MB total
+    true,   // Enable DEBUG logs
+    true,   // Enable console output
+    true    // Enable file output
 );
 
 if (!init_success) {
@@ -149,13 +149,13 @@ For applications with hundreds of threads:
 ```cpp
 mm_log::Logger::Instance().Initialize(
     "./logs/high_concurrency_app",
-    5 * 1024 * 1024,      // 5MB per file
-    100 * 1024 * 1024,    // 100MB total (larger for high volume)
-    true,                 // Enable DEBUG
-    false,                // Disable console for performance
-    true,                 // Enable file output
-    32768,                // Larger queue (32K entries)
-    4                     // 4 worker threads
+    5,      // 5MB per file
+    100,    // 100MB total (larger for high volume)
+    true,   // Enable DEBUG
+    false,  // Disable console for performance
+    true,   // Enable file output
+    32768,  // Larger queue (32K entries)
+    4       // 4 worker threads
 );
 ```
 

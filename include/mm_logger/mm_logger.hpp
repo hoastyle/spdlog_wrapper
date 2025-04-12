@@ -7,7 +7,7 @@
 #include <mutex>
 #include <atomic>
 
-#include "custom_sink.hpp"  // Include our custom sink
+#include "custom_sink.hpp"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/async.h"  // 引入异步日志支持
 #include "spdlog/spdlog.h"
@@ -27,15 +27,10 @@ class Logger {
   }
 
   // 初始化日志系统 - 更新参数以支持总大小限制和异步日志
-  bool Initialize(const std::string& log_file_prefix,
-      size_t max_file_size  = 10 * 1024 * 1024,  // 默认10MB单文件
-      size_t max_total_size = 50 * 1024 * 1024,  // 默认50MB总大小
-      bool enable_debug     = true,
-      bool enable_console   = true,  // 默认启用控制台输出
-      bool enable_file      = true,  // 默认启用文件输出
-      size_t queue_size     = 8192,  // 异步队列大小
-      size_t thread_count   = 1)       // 异步写入线程数
-  {
+  bool Initialize(const std::string& log_file_prefix, size_t max_file_size = 10,
+      size_t max_total_size = 50, bool enable_debug = false,
+      bool enable_console = false, bool enable_file = true,
+      size_t queue_size = 8192, size_t thread_count = 1) {
     // 使用std::call_once确保Initialize只被调用一次
     std::call_once(init_flag_, [&]() {
       try {
@@ -107,6 +102,19 @@ class Logger {
     });
 
     return initialized_.load();
+  }
+
+  bool InitializeWithGB(const std::string& log_file_prefix,
+      double max_file_size_gb  = 0.01,  // 默认10MB
+      double max_total_size_gb = 0.05,  // 默认50MB
+      bool enable_debug = true, bool enable_console = true,
+      bool enable_file = true, size_t queue_size = 8192,
+      size_t thread_count = 1) {
+    size_t max_file_size_mb  = static_cast<size_t>(max_file_size_gb * 1024.0);
+    size_t max_total_size_mb = static_cast<size_t>(max_total_size_gb * 1024.0);
+
+    return Initialize(log_file_prefix, max_file_size_mb, max_total_size_mb,
+        enable_debug, enable_console, enable_file, queue_size, thread_count);
   }
 
   // 获取源文件的基本名称（去掉路径）

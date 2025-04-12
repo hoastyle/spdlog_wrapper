@@ -36,12 +36,12 @@ class custom_rotating_file_sink : public spdlog::sinks::base_sink<Mutex> {
  public:
   custom_rotating_file_sink(const std::string& base_filename,
       const std::string& log_type,  // INFO, WARN, ERROR
-      size_t max_size,              // Single file max size
-      size_t max_total_size)        // All files total size limit
+      uint64_t max_size_mb,         // Single file max size
+      uint64_t max_total_size_mb)   // All files total size limit
       : base_filename_(base_filename),
         log_type_(log_type),
-        max_size_(max_size),
-        max_total_size_(max_total_size),
+        max_size_(max_size_mb * 1024ULL * 1024ULL),
+        max_total_size_(max_total_size_mb * 1024ULL * 1024ULL),
         current_size_(0),
         last_rotation_check_(std::chrono::steady_clock::now()),
         rotation_check_interval_(std::chrono::seconds(1))  // Check every second
@@ -71,7 +71,7 @@ class custom_rotating_file_sink : public spdlog::sinks::base_sink<Mutex> {
     spdlog::memory_buf_t formatted;
     this->formatter_->format(msg, formatted);
 
-    size_t msg_size = formatted.size();
+    uint64_t msg_size = formatted.size();
 
     // Use predicted size to reduce frequency of actual size checks
     if (current_size_ + msg_size > max_size_ || should_check_rotation()) {
@@ -225,16 +225,16 @@ class custom_rotating_file_sink : public spdlog::sinks::base_sink<Mutex> {
         });
 
     // Calculate total size
-    size_t total_size = 0;
+    uint64_t total_size = 0;
     for (const auto& file : log_files) {
-      total_size += file.file_size();
+      total_size += static_cast<uint64_t>(file.file_size());
     }
 
     // Delete oldest files until total size is below limit
     // But always keep the newest file
     for (auto it = log_files.begin();
          it != log_files.end() - 1 && total_size > max_total_size_; ++it) {
-      size_t file_size = it->file_size();
+      uint64_t file_size = static_cast<uint64_t>(it->file_size());
 
       try {
         // Check if file is not the current one being written to
@@ -253,9 +253,9 @@ class custom_rotating_file_sink : public spdlog::sinks::base_sink<Mutex> {
   spdlog::details::file_helper file_helper_;
   std::string base_filename_;
   std::string log_type_;
-  size_t max_size_;
-  size_t max_total_size_;
-  std::atomic<size_t>
+  uint64_t max_size_;
+  uint64_t max_total_size_;
+  std::atomic<uint64_t>
       current_size_;  // Atomic variable tracking current file size
   std::chrono::steady_clock::time_point
       last_rotation_check_;  // Last rotation check time

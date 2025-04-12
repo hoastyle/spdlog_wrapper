@@ -26,11 +26,11 @@ std::string generate_random_string(size_t length) {
 
 int main(int argc, char* argv[]) {
   // Parse command line arguments
-  size_t num_logs       = 10000;  // Default number of logs
-  size_t log_size       = 40;     // Default log size (characters)
-  size_t max_file_size  = 1;      // Default single file size (MB)
-  size_t max_total_size = 5;      // Default total size limit (MB)
-  int log_interval_ms   = 0;      // Default no delay
+  size_t num_logs       = 10000;       // Default number of logs
+  size_t log_size       = 40;          // Default log size (characters)
+  size_t max_file_size  = 1024;        // Default single file size (MB)
+  size_t max_total_size = 512 * 1024;  // Default total size limit (MB)
+  int log_interval_ms   = 0;           // Default no delay
 
   // Check command line arguments
   if (argc > 1) num_logs = std::stoul(argv[1]);
@@ -53,11 +53,11 @@ int main(int argc, char* argv[]) {
 
   // Initialize log system
   if (!mm_log::Logger::Instance().Initialize(log_prefix,  // Log file prefix
-          max_file_size * 1024 * 1024,                    // File size (bytes)
-          max_total_size * 1024 * 1024,  // Total size limit (bytes)
-          true,                          // Enable DEBUG
-          true,                          // Enable console
-          true)) {                       // Enable file
+          max_file_size,                                  // File size (MB)
+          max_total_size,  // Total size limit (MB)
+          true,            // Enable DEBUG
+          true,            // Enable console
+          true)) {         // Enable file
     std::cerr << "Failed to initialize log system!" << std::endl;
     return 1;
   }

@@ -62,11 +62,11 @@ int main() {
     // 初始化日志系统
     mm_log::Logger::Instance().Initialize(
         "./logs/my_app",      // 日志文件前缀
-        5 * 1024 * 1024,      // 5MB 单个文件大小
-        20 * 1024 * 1024,     // 20MB 总大小限制
-        true,                 // 启用DEBUG日志
-        true,                 // 启用控制台输出
-        true                  // 启用文件输出
+        5,      // 5MB 单个文件大小
+        20,     // 20MB 总大小限制
+        true,   // 启用DEBUG日志
+        true,   // 启用控制台输出
+        true    // 启用文件输出
     );
     
     // 使用日志宏
@@ -87,8 +87,8 @@ int main() {
 // 使用异步日志，配置队列大小和工作线程数
 mm_log::Logger::Instance().Initialize(
     "./logs/my_app",
-    5 * 1024 * 1024,
-    20 * 1024 * 1024,
+    5,
+    20,
     true,
     true,
     true,
@@ -102,8 +102,8 @@ mm_log::Logger::Instance().Initialize(
 ```cpp
 mm_log::Logger::Instance().Initialize(
     "./logs/my_app",
-    5 * 1024 * 1024,
-    20 * 1024 * 1024,
+    5,
+    20,
     true,
     false,  // 禁用控制台输出
     true

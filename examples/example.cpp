@@ -6,11 +6,11 @@ class LandCollisionService {
     // 初始化日志系统（通常在主程序开始时只调用一次）
     if (!logger_initialized_) {
       mm_log::Logger::Instance().Initialize("./logs/app_log",  // 日志文件前缀
-          5 * 1024 * 1024,   // 5MB 单个文件大小
-          20 * 1024 * 1024,  // 20MB 总大小限制
-          true,              // 启用DEBUG日志
-          true,              // 启用控制台输出
-          true);             // 启用文件输出
+          5,      // 5MB 单个文件大小
+          20,     // 20MB 总大小限制
+          true,   // 启用DEBUG日志
+          true,   // 启用控制台输出
+          true);  // 启用文件输出
       logger_initialized_ = true;
     }
 

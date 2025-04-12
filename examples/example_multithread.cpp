@@ -173,8 +173,8 @@ int main(int argc, char* argv[]) {
 
   // 初始化日志系统
   if (!mm_log::Logger::Instance().Initialize("./logs/multithread_test",
-          5 * 1024 * 1024,    // 5MB 文件大小
-          50 * 1024 * 1024,   // 50MB 总大小限制
+          5,                  // 5MB 文件大小
+          50,                 // 50MB 总大小限制
           true,               // 启用DEBUG
           enable_console,     // 控制台输出由参数决定
           true,               // 始终启用文件输出
