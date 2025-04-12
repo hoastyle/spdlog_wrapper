@@ -9,14 +9,14 @@
 
 #include "custom_sink.hpp"
 #include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/async.h"  // 引入异步日志支持
+#include "spdlog/async.h"  // Include async logging support
 #include "spdlog/spdlog.h"
-#include <cstdarg>  // 用于va_list
-#include <vector>   // 用于动态缓冲区
+#include <cstdarg>  // For va_list
+#include <vector>   // For dynamic buffer
 
 namespace mm_log {
 
-// 定义日志级别
+// Define log levels
 enum class LogLevel { DEBUG = 0, INFO = 1, WARN = 2, ERROR = 3 };
 
 class Logger {
@@ -26,18 +26,20 @@ class Logger {
     return instance;
   }
 
-  // 初始化日志系统 - 更新参数以支持总大小限制和异步日志
+  // Initialize logging system - with parameters for total size limit and async
+  // logging
   bool Initialize(const std::string& log_file_prefix, size_t max_file_size = 10,
       size_t max_total_size = 50, bool enable_debug = false,
       bool enable_console = false, bool enable_file = true,
       size_t queue_size = 8192, size_t thread_count = 1) {
-    // 使用std::call_once确保Initialize只被调用一次
+    // Use std::call_once to ensure Initialize is called only once
     std::call_once(init_flag_, [&]() {
       try {
-        // 保存设置
+        // Save settings
         enable_debug_   = enable_debug;
         enable_console_ = enable_console;
         enable_file_    = enable_file;
+        current_level_  = enable_debug ? LogLevel::DEBUG : LogLevel::INFO;
 
         if (!enable_console_ && !enable_file_) {
           std::cerr << "Warning: Both console and file logging are disabled!"
@@ -46,13 +48,13 @@ class Logger {
           return;
         }
 
-        // 初始化全局异步日志
+        // Initialize global async logging
         spdlog::init_thread_pool(queue_size, thread_count);
 
-        // 创建多重日志记录器，将合并不同的输出目标
+        // Create multiple logger that will merge different output targets
         std::vector<spdlog::sink_ptr> sinks;
 
-        // 添加控制台输出
+        // Add console output
         if (enable_console_) {
           auto console_sink =
               std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -60,23 +62,23 @@ class Logger {
           sinks.push_back(console_sink);
         }
 
-        // 添加文件输出
+        // Add file output
         if (enable_file_) {
-          // 创建INFO文件sink（包含所有级别）
+          // Create INFO file sink (includes all levels)
           auto info_sink = std::make_shared<custom_rotating_file_sink_mt>(
               log_file_prefix, "INFO", max_file_size, max_total_size);
           info_sink->set_pattern("%P:I%Y%m%d %H:%M:%S.%f %t :0] %v");
           info_sink->set_level(spdlog::level::debug);
           sinks.push_back(info_sink);
 
-          // 创建WARN文件sink（只包含WARN和ERROR级别）
+          // Create WARN file sink (only includes WARN and ERROR levels)
           auto warn_sink = std::make_shared<custom_rotating_file_sink_mt>(
               log_file_prefix, "WARN", max_file_size, max_total_size);
           warn_sink->set_pattern("%P:I%Y%m%d %H:%M:%S.%f %t :0] %v");
           warn_sink->set_level(spdlog::level::warn);
           sinks.push_back(warn_sink);
 
-          // 创建ERROR文件sink（只包含ERROR级别）
+          // Create ERROR file sink (only includes ERROR level)
           auto error_sink = std::make_shared<custom_rotating_file_sink_mt>(
               log_file_prefix, "ERROR", max_file_size, max_total_size);
           error_sink->set_pattern("%P:I%Y%m%d %H:%M:%S.%f %t :0] %v");
@@ -84,7 +86,7 @@ class Logger {
           sinks.push_back(error_sink);
         }
 
-        // 创建并注册异步日志记录器
+        // Create and register async logger
         auto logger = std::make_shared<spdlog::async_logger>("main_logger",
             sinks.begin(), sinks.end(), spdlog::thread_pool(),
             spdlog::async_overflow_policy::block);
@@ -105,8 +107,8 @@ class Logger {
   }
 
   bool InitializeWithGB(const std::string& log_file_prefix,
-      double max_file_size_gb  = 0.01,  // 默认10MB
-      double max_total_size_gb = 0.05,  // 默认50MB
+      double max_file_size_gb  = 0.01,  // Default 10MB
+      double max_total_size_gb = 0.05,  // Default 50MB
       bool enable_debug = true, bool enable_console = true,
       bool enable_file = true, size_t queue_size = 8192,
       size_t thread_count = 1) {
@@ -117,7 +119,40 @@ class Logger {
         enable_debug, enable_console, enable_file, queue_size, thread_count);
   }
 
-  // 获取源文件的基本名称（去掉路径）
+  // New: Method to dynamically set log level
+  bool SetLogLevel(LogLevel level) {
+    if (!initialized_.load()) {
+      return false;
+    }
+
+    // Update current log level
+    current_level_.store(level);
+
+    // Get spdlog logger and update its level
+    auto logger = spdlog::get("main_logger");
+    if (!logger) {
+      return false;
+    }
+
+    // Convert mm_log level to spdlog level
+    spdlog::level::level_enum spdlog_level;
+    switch (level) {
+      case LogLevel::DEBUG: spdlog_level = spdlog::level::debug; break;
+      case LogLevel::INFO: spdlog_level = spdlog::level::info; break;
+      case LogLevel::WARN: spdlog_level = spdlog::level::warn; break;
+      case LogLevel::ERROR: spdlog_level = spdlog::level::err; break;
+      default: spdlog_level = spdlog::level::info;
+    }
+
+    // Set new level
+    logger->set_level(spdlog_level);
+    return true;
+  }
+
+  // New: Get current log level
+  LogLevel GetLogLevel() const { return current_level_.load(); }
+
+  // Get base name of source file (remove path)
   static std::string GetBaseName(const std::string& file_path) {
     size_t pos = file_path.find_last_of("/\\");
     if (pos != std::string::npos) {
@@ -126,7 +161,7 @@ class Logger {
     return file_path;
   }
 
-  // 通用函数，用于处理不同日志级别的格式化和日志写入
+  // General function for handling formatting and logging at different levels
   template <typename... Args>
   void Log(LogLevel level, const char* file, const char* func, int line,
       const char* fmt, ...) {
@@ -134,50 +169,51 @@ class Logger {
       return;
     }
 
-    // 如果是DEBUG级别但DEBUG被禁用，则返回
-    if (level == LogLevel::DEBUG && !enable_debug_) {
+    // Check if log level should be recorded
+    if (level < current_level_.load()) {
       return;
     }
 
-    // 构建日志前缀（类名::函数名() 行号 级别标识）
+    // Build log prefix (classname::functionname() line_number level_indicator)
     std::string basename  = GetBaseName(file);
     std::string classname = basename.substr(0, basename.find_last_of('.'));
     std::string prefix    = fmt::format("{}::{}() {} {}: ",
-        classname,             // 类名（提取自文件名）
-        func,                  // 函数名
-        line,                  // 行号
-        GetLevelChar(level));  // 级别标识（D/I/W/E）
+           classname,             // Class name (extracted from file name)
+           func,                  // Function name
+           line,                  // Line number
+           GetLevelChar(level));  // Level indicator (D/I/W/E)
 
-    // 处理变长参数
+    // Handle variable arguments
     va_list args;
     va_start(args, fmt);
 
-    // 估计缓冲区大小
+    // Estimate buffer size
     va_list args_copy;
     va_copy(args_copy, args);
-    int size = vsnprintf(nullptr, 0, fmt, args_copy) + 1;  // +1 为了结尾的 \0
+    int size =
+        vsnprintf(nullptr, 0, fmt, args_copy) + 1;  // +1 for terminating \0
     va_end(args_copy);
 
     std::string message;
     if (size <= 0) {
-      message = "格式化错误";
+      message = "Format error";
     } else {
-      // 分配缓冲区并格式化
+      // Allocate buffer and format
       std::vector<char> buffer(size);
       vsnprintf(buffer.data(), size, fmt, args);
       message = std::string(buffer.data(),
-          buffer.data() + size - 1);  // 不包括结尾的 \0
+          buffer.data() + size - 1);  // Exclude terminating \0
     }
 
     va_end(args);
 
-    // 获取日志记录器
+    // Get logger
     auto logger = spdlog::get("main_logger");
     if (!logger) {
       return;
     }
 
-    // 输出完整消息
+    // Output complete message
     switch (level) {
       case LogLevel::DEBUG: logger->debug("{}{}", prefix, message); break;
       case LogLevel::INFO: logger->info("{}{}", prefix, message); break;
@@ -186,7 +222,7 @@ class Logger {
     }
   }
 
-  // 在程序结束前主动刷新和关闭日志
+  // Actively flush and close logs before program ends
   void Shutdown() {
     if (initialized_.load()) {
       spdlog::shutdown();
@@ -195,19 +231,20 @@ class Logger {
   }
 
  private:
-  // 私有构造函数（单例模式）
+  // Private constructor (singleton pattern)
   Logger()
       : initialized_(false),
         enable_debug_(true),
         enable_console_(true),
-        enable_file_(true) {}
+        enable_file_(true),
+        current_level_(LogLevel::INFO) {}
 
   ~Logger() {
-    // 刷新所有日志
+    // Flush all logs
     Shutdown();
   }
 
-  // 获取日志级别对应的字符
+  // Get character corresponding to log level
   static char GetLevelChar(LogLevel level) {
     switch (level) {
       case LogLevel::DEBUG: return 'D';
@@ -218,12 +255,14 @@ class Logger {
     }
   }
 
-  // 成员变量
-  std::atomic<bool> initialized_;  // 使用atomic保证线程安全
-  std::once_flag init_flag_;       // 确保初始化只执行一次
+  // Member variables
+  std::atomic<bool> initialized_;  // Use atomic to ensure thread safety
+  std::once_flag init_flag_;  // Ensure initialization is executed only once
   bool enable_debug_;
   bool enable_console_;
   bool enable_file_;
+  std::atomic<LogLevel>
+      current_level_;  // Current log level, atomic for thread safety
 };
 
 }  // namespace mm_log
