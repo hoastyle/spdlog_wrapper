@@ -3,3 +3,5 @@
 ```
 rm ~/.cache/matplotlib -rf
 ```
+
+pip install seaborn

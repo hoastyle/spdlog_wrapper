@@ -47,6 +47,13 @@ install(FILES
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 
+# 安装 perf_analyzer 目录
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scripts/perf_analyzer"
+    DESTINATION bin
+    FILES_MATCHING PATTERN "*.py"
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
 # 复制脚本到构建目录
 add_custom_command(TARGET performance_test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
@@ -64,6 +71,13 @@ add_custom_command(TARGET performance_test POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
     "${CMAKE_CURRENT_SOURCE_DIR}/scripts/perf_monitor.py"
     "${CMAKE_BINARY_DIR}/perf_monitor.py"
+)
+
+# 复制 perf_analyzer 目录到构建目录
+add_custom_command(TARGET performance_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/scripts/perf_analyzer"
+    "${CMAKE_BINARY_DIR}/perf_analyzer"
 )
 
 # 显示构建完成消息

@@ -321,17 +321,18 @@ void run_comparison_test_suite(TestConfig base_config) {
 }
 
 // test_suites.cpp 中 run_single_test 函数的改进部分
+// Modified run_single_test function in perf_test/src/test_suites.cpp
 
 bool run_single_test(TestConfig& config) {
   try {
-    // 确保日志目录存在
+    // Ensure log directory exists
     if (!utils::create_directory(config.log_dir)) {
       std::cerr << "Error: Failed to create log directory: " << config.log_dir
                 << std::endl;
       return false;
     }
 
-    // 确保测试名称不为空
+    // Ensure test name is not empty
     if (config.test_name.empty()) {
       std::cerr << "Error: Empty test name specified" << std::endl;
       return false;
@@ -339,7 +340,7 @@ bool run_single_test(TestConfig& config) {
 
     std::cout << "Running test: " << config.test_name << std::endl;
 
-    // 打印更多的配置信息，帮助诊断问题
+    // Print more configuration info to help with diagnostics
     if (config.verbose) {
       std::cout << "Test configuration:" << std::endl;
       std::cout << "  Message size: "
@@ -350,7 +351,7 @@ bool run_single_test(TestConfig& config) {
       std::cout << "  Worker threads: " << config.worker_threads << std::endl;
     }
 
-    // 提取测试的基本类型（删除可能的后缀）
+    // Extract the base test type (remove possible suffixes)
     std::string base_test_name = config.test_name;
     size_t pos                 = base_test_name.find("_msgsize_");
     if (pos != std::string::npos) {
@@ -358,9 +359,84 @@ bool run_single_test(TestConfig& config) {
       std::cout << "Extracted base test name: " << base_test_name << std::endl;
     }
 
-    // 基于测试的基本类型运行测试
-    if (config.test_name == "throughput" || base_test_name == "throughput") {
-      // 运行单个吞吐量测试
+    // Handle "all" option - run all test suites
+    if (config.test_name == "all" || base_test_name == "all") {
+      std::cout << "Running all test suites..." << std::endl;
+
+      // Save original config to reset between test suites
+      TestConfig original_config = config;
+
+      // Run all test suites
+      try {
+        // Run throughput test suite
+        std::cout << "\n===== Running throughput test suite =====" << std::endl;
+        config = original_config;
+        run_throughput_test_suite(config);
+
+        // Run latency test suite
+        std::cout << "\n===== Running latency test suite =====" << std::endl;
+        config = original_config;
+        run_latency_test_suite(config);
+
+        // Run stress test suite
+        std::cout << "\n===== Running stress test suite =====" << std::endl;
+        config = original_config;
+        run_stress_test_suite(config);
+
+        // Run comparison test suite
+        std::cout << "\n===== Running comparison test suite =====" << std::endl;
+        config = original_config;
+        run_comparison_test_suite(config);
+
+        std::cout << "\n===== All test suites completed =====" << std::endl;
+        return true;
+      } catch (const std::exception& e) {
+        std::cerr << "Error in all test suites: " << e.what() << std::endl;
+        return false;
+      }
+    }
+
+    // Handle "throughput_suite" option
+    else if (config.test_name == "throughput_suite" ||
+             base_test_name == "throughput_suite") {
+      try {
+        run_throughput_test_suite(config);
+        return true;
+      } catch (const std::exception& e) {
+        std::cerr << "Error in throughput test suite: " << e.what()
+                  << std::endl;
+        return false;
+      }
+    }
+
+    // Handle "latency_suite" option
+    else if (config.test_name == "latency_suite" ||
+             base_test_name == "latency_suite") {
+      try {
+        run_latency_test_suite(config);
+        return true;
+      } catch (const std::exception& e) {
+        std::cerr << "Error in latency test suite: " << e.what() << std::endl;
+        return false;
+      }
+    }
+
+    // Handle "stress_suite" option
+    else if (config.test_name == "stress_suite" ||
+             base_test_name == "stress_suite") {
+      try {
+        run_stress_test_suite(config);
+        return true;
+      } catch (const std::exception& e) {
+        std::cerr << "Error in stress test suite: " << e.what() << std::endl;
+        return false;
+      }
+    }
+
+    // Run test based on the base test type
+    else if (config.test_name == "throughput" ||
+             base_test_name == "throughput") {
+      // Run single throughput test
       PerformanceTest test(config);
       PerfResult result     = test.run_throughput_test();
       result.memory_used_kb = test.get_memory_usage();
@@ -372,7 +448,7 @@ bool run_single_test(TestConfig& config) {
       }
       return true;
     } else if (config.test_name == "latency" || base_test_name == "latency") {
-      // 运行单个延迟测试
+      // Run single latency test
       PerformanceTest test(config);
       PerfResult result     = test.run_latency_test();
       result.memory_used_kb = test.get_memory_usage();
@@ -384,9 +460,9 @@ bool run_single_test(TestConfig& config) {
       }
       return true;
     } else if (config.test_name == "stress" || base_test_name == "stress") {
-      // 运行单个压力测试，默认5组500条日志的突发
+      // Run single stress test, default 5 bursts of 500 logs each
       PerformanceTest test(config);
-      PerfResult result = test.run_stress_test(500, 5);  // 减少测试规模
+      PerfResult result = test.run_stress_test(500, 5);  // Reduced test size
       result.memory_used_kb = test.get_memory_usage();
 
       test.print_results(result, "Stress Test");
@@ -404,7 +480,7 @@ bool run_single_test(TestConfig& config) {
         return false;
       }
     }
-    // 其他测试类型保持不变...
+    // Other test types remain unchanged...
 
     std::cerr << "Unknown test name: '" << config.test_name << "'" << std::endl;
     std::cerr << "Available tests: throughput, latency, stress, compare, "
@@ -412,7 +488,7 @@ bool run_single_test(TestConfig& config) {
               << std::endl;
     return false;
   } catch (const std::exception& e) {
-    // 打印详细错误信息
+    // Print detailed error information
     std::cerr << "Error type: " << typeid(e).name() << std::endl;
     std::cerr << "Error during test execution: " << e.what() << std::endl;
     return false;
