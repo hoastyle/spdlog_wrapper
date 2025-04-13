@@ -217,45 +217,45 @@ def plot_thread_scaling(data, output_dir):
     print(f"生成了线程扩展性能图: {filename}")
 
 def plot_message_size_impact(data, output_dir):
-    """绘制消息大小影响图"""
-    # 过滤消息大小测试数据
-    size_data = data[data['TestName'].str.contains('throughput_msgsize_')]
-    
+    """Plot message size impact"""
+    # 过滤消息大小测试数据，使用拷贝而不是视图
+    size_data = data[data['TestName'].str.contains('throughput_msgsize_')].copy()
+
     if len(size_data) < 3:
-        print("警告: 没有足够的消息大小测试数据")
+        print("Warning: Not enough message size test data")
         return
-    
-    # 提取消息大小
-    size_data['MessageSizeType'] = size_data['TestName'].str.extract(r'throughput_msgsize_(\w+)')
-    
+
+    # 使用 .loc 来设置列值，避免 SettingWithCopyWarning
+    size_data.loc[:, 'MessageSizeType'] = size_data['TestName'].str.extract(r'throughput_msgsize_(\w+)')
+
     # 设置正确的排序顺序
     size_order = {'small': 0, 'medium': 1, 'large': 2}
-    size_data['SizeOrder'] = size_data['MessageSizeType'].map(size_order)
-    
+    size_data.loc[:, 'SizeOrder'] = size_data['MessageSizeType'].map(size_order)
+
     # 按Logger类型分组
     grouped = size_data.groupby('Logger')
-    
+
     plt.figure(figsize=(10, 6))
-    
+
     for name, group in grouped:
         # 按消息大小排序
         group = group.sort_values('SizeOrder')
-        
+
         # 绘制消息大小-吞吐量柱状图
         plt.bar(group['MessageSizeType'] + ' (' + name + ')', group['LogsPerSecond'], label=name)
-    
-    plt.title('消息大小对吞吐量的影响', fontsize=14)
-    plt.xlabel('消息大小', fontsize=12)
-    plt.ylabel('每秒日志数', fontsize=12)
+
+    plt.title('Message Size Impact on Throughput', fontsize=14)
+    plt.xlabel('Message Size', fontsize=12)
+    plt.ylabel('Logs per Second', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.7, axis='y')
-    
+
     # 保存图表
     filename = "message_size_impact.png"
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, filename))
     plt.close()
-    
-    print(f"生成了消息大小影响图: {filename}")
+
+    print(f"Generated message size impact chart: {filename}")
 
 def plot_queue_size_impact(data, output_dir):
     """绘制队列大小影响图"""

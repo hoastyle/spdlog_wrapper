@@ -35,4 +35,4 @@ size_t get_file_size(const std::string& filepath);
 // 获取进程占用内存（KB）
 size_t get_process_memory_usage();
 
-} // namespace utils
+}  // namespace utils
